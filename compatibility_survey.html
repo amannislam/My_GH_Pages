@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Compatibility Profile Survey</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
     --bg: #0f0e11;
@@ -890,6 +891,35 @@ function getInsights(scores) {
   return [...strengths, ...tensions];
 }
 
+async function shareResults() {
+  const btn = document.getElementById('share-btn');
+  btn.textContent = 'Capturing…';
+  btn.disabled = true;
+
+  try {
+    const el = document.getElementById('results-view');
+    const canvas = await html2canvas(el, { backgroundColor: '#0f0e11', scale: 2, useCORS: true });
+
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], 'compatibility-results.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Compatibility Results' });
+      } else {
+        // Fallback: download the image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'compatibility-results.png'; a.click();
+        URL.revokeObjectURL(url);
+      }
+      btn.textContent = 'Share Results ↗';
+      btn.disabled = false;
+    }, 'image/png');
+  } catch(e) {
+    btn.textContent = 'Share Results ↗';
+    btn.disabled = false;
+  }
+}
+
 function getTitle(score) {
   if (score >= 80) return 'Deeply Aligned';
   if (score >= 65) return 'Strongly Compatible';
@@ -963,6 +993,14 @@ function showResults() {
       <p style="font-size:14px;color:var(--muted);line-height:1.7;">
         These scores are a <em>conversation starter</em>, not a verdict. Research shows that how couples interact day-to-day predicts outcomes far better than any profile survey can. A low score in one area can be balanced by strengths elsewhere — and compatibility can always be intentionally built. Use these results to ask better questions of each other.
       </p>
+    </div>
+
+    <div style="background:linear-gradient(135deg,rgba(139,111,158,0.1),rgba(200,169,126,0.1));border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-top:24px;text-align:center;">
+      <div style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Compatibility Score</div>
+      <div style="font-family:'Playfair Display',serif;font-size:52px;color:var(--accent);line-height:1;">${scores.total}<span style="font-size:22px;color:var(--muted)"> / 100</span></div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;margin:8px 0 4px;">${p1Name} & ${p2Name}</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:20px;font-style:italic;">${title}</div>
+      <button class="btn btn-primary" id="share-btn" onclick="shareResults()">Share Results ↗</button>
     </div>
 
     <div class="result-cta">
