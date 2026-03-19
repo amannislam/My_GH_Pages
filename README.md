@@ -466,7 +466,7 @@
     </p>
     <div class="intro-cards">
       <div class="intro-card"><div class="intro-card-icon">🔒</div><h3>Private</h3><p>Answers stay in your browser. Nothing is sent anywhere.</p></div>
-      <div class="intro-card"><div class="intro-card-icon">⏱</div><h3>~8 minutes</h3><p>30 questions across 4 layers of compatibility.</p></div>
+      <div class="intro-card"><div class="intro-card-icon">⏱</div><h3>~8 minutes</h3><p>31 questions across 4 layers of compatibility.</p></div>
       <div class="intro-card"><div class="intro-card-icon">📊</div><h3>Research-backed</h3><p>Based on Gottman, similarity-attraction, and complementarity research.</p></div>
       <div class="intro-card"><div class="intro-card-icon">💬</div><h3>Conversation starter</h3><p>Results designed to spark honest discussion, not judge your relationship.</p></div>
     </div>
@@ -520,6 +520,7 @@ const SLIDER_LABELS = {
   activityLevel: ['Sedentary', 'Moderately active', 'Very active'],
   tidiness: ['Very relaxed', 'Moderate', 'Highly organized'],
   politicalAlign: ['Far left', 'Center', 'Far right'],
+  religiosity: ['Not part of my daily life', 'Somewhat present', 'Central to how I live'],
 };
 
 const questions = [
@@ -532,6 +533,7 @@ const questions = [
   { id:'smoking', layer:1, text:'Do you smoke?', type:'radio', options:['Never','Socially only','Regularly'] },
   { id:'drinking', layer:1, text:'Do you drink alcohol?', type:'radio', options:['Never','Socially only','Regularly'] },
   { id:'religion', layer:1, text:'What is your religion or spiritual identity?', type:'radio', options:['Christian','Muslim','Jewish','Hindu','Buddhist','Spiritual but not religious','Agnostic','Atheist','Other'] },
+  { id:'religiosity', layer:1, text:'How central is your faith or spiritual practice to your daily life?', type:'slider', key:'religiosity' },
   { id:'politics', layer:1, text:'Where do you sit politically?', sub:'Used only to assess alignment, not to judge.', type:'slider', key:'politicalAlign' },
 
   // LAYER 2
@@ -823,6 +825,21 @@ function scoreStressPair(need, offer) {
   return needMap[need] === offer ? 1 : 0.2;
 }
 
+function scoreInterests(int1, int2) {
+  if (!int1 && !int2) return 0.5;
+  const i1 = int1 || {}, i2 = int2 || {};
+  const allKeys = new Set([...Object.keys(i1), ...Object.keys(i2)]);
+  const coreItems = [...allKeys].filter(k => i1[k] === 2 || i2[k] === 2);
+  if (!coreItems.length) return 0.5;
+  const scores = coreItems.map(k => {
+    const v1 = i1[k] || 0, v2 = i2[k] || 0;
+    if (v1 === 2 && v2 === 2) return 1.0;
+    if ((v1 === 2 && v2 === 1) || (v1 === 1 && v2 === 2)) return 0.5;
+    return 0.15;
+  });
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
+}
+
 function computeScores() {
   const p1 = answers.p1, p2 = answers.p2;
 
@@ -831,9 +848,10 @@ function computeScores() {
   const v_goals     = scoreMultiselectOverlap(p1.tenYearGoals, p2.tenYearGoals);
   const v_money     = scoreSliderSimilarity(p1.moneyStyle, p2.moneyStyle);
   const v_ambition  = scoreRadioSimilarity(p1.ambition, p2.ambition);
-  const v_collective= scoreRadioSimilarity(p1.collectivism, p2.collectivism);
-  const v_family    = scoreRadioSimilarity(p1.familyRole, p2.familyRole);
-  const valuesScore = (v_career + v_goals + v_money + v_ambition + v_collective + v_family) / 6;
+  const v_collective  = scoreRadioSimilarity(p1.collectivism, p2.collectivism);
+  const v_family      = scoreRadioSimilarity(p1.familyRole, p2.familyRole);
+  const v_religiosity = scoreSliderSimilarity(p1.religiosity, p2.religiosity);
+  const valuesScore = (v_career + v_goals + v_money + v_ambition + v_collective + v_family + v_religiosity) / 7;
 
   // COMPLEMENTARITY (20%)
   const c_dom = scoreComplementarity(p1.dominance, p2.dominance);
@@ -855,8 +873,11 @@ function computeScores() {
   const l_location = scoreRadioSimilarity(p1.livingPref, p2.livingPref);
   const lifestyleScore = (l_activity + l_diet + l_tidy + l_schedule + l_location) / 5;
 
+  // INTERESTS (5%)
+  const interestsScore = scoreInterests(p1.interests, p2.interests);
+
   // TOTAL
-  const total = valuesScore * 0.40 + compScore * 0.20 + dynamicsScore * 0.25 + lifestyleScore * 0.10;
+  const total = valuesScore * 0.40 + compScore * 0.20 + dynamicsScore * 0.25 + lifestyleScore * 0.10 + interestsScore * 0.05;
 
   return {
     total: Math.round(total * 100),
@@ -864,6 +885,7 @@ function computeScores() {
     complementarity: Math.round(compScore * 100),
     dynamics: Math.round(dynamicsScore * 100),
     lifestyle: Math.round(lifestyleScore * 100),
+    interests: Math.round(interestsScore * 100),
     detail: { v_career, v_goals, v_money, v_ambition, v_collective, v_family, d_ll, d_stress, d_conflict, l_tidy, l_location }
   };
 }
@@ -943,6 +965,7 @@ function showResults() {
     { label: 'Dynamics & Communication', score: scores.dynamics, weight: '25%', color: '#c8a97e', note: 'Love languages, conflict & stress response.' },
     { label: 'Complementarity', score: scores.complementarity, weight: '20%', color: '#8b6f9e', note: 'Balance of dominant & adaptive styles.' },
     { label: 'Lifestyle', score: scores.lifestyle, weight: '10%', color: '#7ab8d4', note: 'Day-to-day habits and living preferences.' },
+    { label: 'Shared Interests', score: scores.interests, weight: '5%', color: '#d4846a', note: 'Overlap in core passions and hobbies.' },
   ];
 
   const resultsEl = document.getElementById('results-view');
@@ -967,12 +990,27 @@ function showResults() {
         </div>
       </div>
       <div class="result-title">${p1Name} & ${p2Name}: <em style="color:var(--accent);font-style:italic;">${title}</em></div>
-      <div class="result-subtitle" style="color:var(--muted);font-size:14px;margin-top:8px;">Based on 30 questions across 4 compatibility layers</div>
+      <div class="result-subtitle" style="color:var(--muted);font-size:14px;margin-top:8px;">Based on 31 questions across 4 compatibility layers</div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px 24px;margin-bottom:32px;">
+      <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;">Where you land</div>
+      <div style="position:relative;margin-bottom:12px;">
+        <div style="height:8px;border-radius:4px;background:linear-gradient(to right,#c0504a 0%,#d4846a 35%,#d4a86a 50%,#8bc87a 65%,#6db98a 80%,#c8a97e 100%);"></div>
+        <div style="position:absolute;top:50%;left:${Math.min(Math.max(scores.total,2),98)}%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:var(--bg);border:2.5px solid #fff;box-shadow:0 0 0 3px rgba(255,255,255,0.2),0 2px 8px rgba(0,0,0,0.6);"></div>
+      </div>
+      <div style="display:flex;">
+        <div style="width:35%;font-size:10px;color:#d4846a;letter-spacing:0.04em;line-height:1.4;">Growth Edges<br>Ahead</div>
+        <div style="width:15%;font-size:10px;color:#d4a86a;text-align:center;letter-spacing:0.04em;line-height:1.4;">Comp.<br>Diff.</div>
+        <div style="width:15%;font-size:10px;color:#8bc87a;text-align:center;letter-spacing:0.04em;line-height:1.4;">Good<br>Foundation</div>
+        <div style="width:15%;font-size:10px;color:#6db98a;text-align:center;letter-spacing:0.04em;line-height:1.4;">Strongly<br>Compat.</div>
+        <div style="width:20%;font-size:10px;color:#c8a97e;text-align:right;letter-spacing:0.04em;line-height:1.4;">Deeply<br>Aligned</div>
+      </div>
     </div>
 
     <div class="breakdown-grid">
-      ${breakdowns.map(b => `
-        <div class="breakdown-card">
+      ${breakdowns.map((b, i) => `
+        <div class="breakdown-card"${i === breakdowns.length - 1 && breakdowns.length % 2 !== 0 ? ' style="grid-column:1/-1;"' : ''}>
           <div class="bc-label">${b.label} <span style="color:var(--border)">·</span> ${b.weight}</div>
           <div class="bc-score" style="color:${b.color}">${b.score}<span style="font-size:16px;color:var(--muted)">%</span></div>
           <div class="bc-bar"><div class="bc-fill" style="width:${b.score}%;background:${b.color};"></div></div>
