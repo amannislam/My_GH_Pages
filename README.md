@@ -466,7 +466,7 @@
     </p>
     <div class="intro-cards">
       <div class="intro-card"><div class="intro-card-icon">🔒</div><h3>Private</h3><p>Answers stay in your browser. Nothing is sent anywhere.</p></div>
-      <div class="intro-card"><div class="intro-card-icon">⏱</div><h3>~8 minutes</h3><p>32 questions across 4 layers of compatibility.</p></div>
+      <div class="intro-card"><div class="intro-card-icon">⏱</div><h3>~8 minutes</h3><p>36 questions across 4 layers of compatibility.</p></div>
       <div class="intro-card"><div class="intro-card-icon">📊</div><h3>Research-backed</h3><p>Based on Gottman, similarity-attraction, and complementarity research.</p></div>
       <div class="intro-card"><div class="intro-card-icon">💬</div><h3>Conversation starter</h3><p>Results designed to spark honest discussion, not judge your relationship.</p></div>
     </div>
@@ -521,6 +521,7 @@ const SLIDER_LABELS = {
   tidiness: ['Very relaxed', 'Moderate', 'Highly organized'],
   politicalAlign: ['Far left', 'Center', 'Far right'],
   religiosity: ['Not part of my daily life', 'Somewhat present', 'Central to how I live'],
+  emotionalStability: ['Very steady — rarely overwhelmed', 'Balanced', 'Very intense — I feel things deeply'],
 };
 
 const questions = [
@@ -531,7 +532,8 @@ const questions = [
   { id:'orientation', layer:1, text:'What best describes your sexual orientation?', type:'radio', options:['Straight','Gay / Lesbian','Bisexual','Pansexual','Prefer to self-describe'] },
   { id:'relationshipGoal', layer:1, text:'What are you looking for in a relationship?', type:'radio', options:['Casual connection','Long-term partnership','Open to both','Not sure yet'] },
   { id:'wantsKids', layer:1, text:'How do you feel about having children?', type:'radio', options:['Yes, I want kids','No, I don\'t want kids','I have kids and I\'m done','Open to it'] },
-  { id:'smoking', layer:1, text:'Do you smoke?', type:'radio', options:['Never','Socially only','Regularly'] },
+  { id:'smokingTobacco', layer:1, text:'Do you smoke tobacco?', type:'radio', options:['Never','Socially only','Regularly'] },
+  { id:'smokingCannabis', layer:1, text:'Do you use cannabis?', type:'radio', options:['Never','Socially only','Regularly'] },
   { id:'drinking', layer:1, text:'Do you drink alcohol?', type:'radio', options:['Never','Socially only','Regularly'] },
   { id:'religion', layer:1, text:'What is your religion or spiritual identity?', type:'radio', options:['Christian','Muslim','Jewish','Hindu','Buddhist','Spiritual but not religious','Agnostic','Atheist','Other'] },
   { id:'religiosity', layer:1, text:'How central is your faith or spiritual practice to your daily life?', type:'slider', key:'religiosity' },
@@ -541,28 +543,31 @@ const questions = [
   { id:'careerVsRelationships', layer:2, text:'Right now in life, which matters more to you?', type:'slider', key:'careerVsRelationships' },
   { id:'tenYearGoals', layer:2, text:'In 10 years, what feels most important to you?', sub:'Pick up to 2.', type:'multiselect', options:['Financial security','Adventure & exploration','Starting / growing a family','Creative fulfillment','Community & belonging','Personal growth'], max:2 },
   { id:'moneyStyle', layer:2, text:'How do you think about money?', type:'slider', key:'moneyStyle' },
-  { id:'ambition', layer:2, text:'What\'s your relationship with personal ambition?', type:'radio', options:['Very driven — I push hard toward goals','I work to live, not live to work','Somewhere comfortably in between'] },
+  { id:'ambition', layer:2, text:'How would you describe your relationship with ambition and where you direct your energy?', type:'radio', options:['Very driven — career and achievement come first','I work to live — balance matters more than ambition','Lifestyle-focused — personal life, relationships, and experiences are my priority','Still figuring out what drives me'] },
   { id:'collectivism', layer:2, text:'How important is social justice and collective responsibility to you?', type:'radio', options:['Core to my identity — it shapes my choices','Important, but not the center of my life','I focus more on personal responsibility'] },
   { id:'familyRole', layer:2, text:'What role does your family (parents, siblings) play in your life?', type:'radio', options:['Central — we\'re very involved in each other\'s lives','Close but independent','I\'ve built my own chosen family','It\'s complicated'] },
 
   // LAYER 3
+  { id:'attachmentStyle', layer:3, text:'In relationships, which pattern feels most like you?', sub:'Be honest — there\'s no right answer.', type:'radio', options:['Secure — comfortable with closeness, I don\'t worry much about the relationship','Anxious — I sometimes worry my partner doesn\'t care as much as I do, or fear being abandoned','Avoidant — I value independence and tend to pull back when things get too close','Fearful — I want closeness but find it hard to trust; intimacy can feel risky'] },
+  { id:'emotionalStability', layer:3, text:'How would you describe your emotional baseline day-to-day?', type:'slider', key:'emotionalStability' },
   { id:'introExtro', layer:3, text:'In social situations, you tend to...', type:'slider', key:'introExtro' },
   { id:'decisionStyle', layer:3, text:'When making decisions, you tend to...', type:'slider', key:'decisionStyle' },
   { id:'dominance', layer:3, text:'In a partnership, you naturally see yourself as...', type:'radio', options:['The planner and organizer','The one who goes with the flow','Equal co-pilots — it depends'] },
   { id:'conflictDominance', layer:3, text:'When a conflict arises, you usually...', type:'radio', options:['Take charge and push for resolution','Step back and let things settle','Adapt to whatever the other person needs'] },
   { id:'loveLanguageGive', layer:3, text:'How do you most naturally show care?', sub:'Pick your top 2.', type:'multiselect', options:['Quality time','Words of affirmation','Acts of service','Physical affection','Thoughtful gifts'], max:2 },
   { id:'loveLanguageReceive', layer:3, text:'How do you most feel loved and cared for?', sub:'Pick your top 2.', type:'multiselect', options:['Quality time','Words of affirmation','Acts of service','Physical affection','Thoughtful gifts'], max:2 },
+  { id:'physicalIntimacy', layer:3, text:'How central is physical intimacy to feeling connected in a relationship?', type:'radio', options:['Not a primary need — emotional closeness matters more to me','Meaningful, but not the most important factor','Important — regular intimacy helps me feel secure and close','A core need — physical connection is central to how I love'] },
   { id:'stressNeed', layer:3, text:'When you\'re stressed, what do you want from a partner?', type:'radio', options:['Help me solve the problem','Just listen and be present','Give me space to process'] },
   { id:'stressOffer', layer:3, text:'What do you naturally offer when your partner is stressed?', type:'radio', options:['Jump in to help solve it','Listen without trying to fix it','Give them space'] },
   { id:'conflictStyle', layer:3, text:'How do you handle conflict in relationships?', type:'radio', options:['Address it immediately — I can\'t let it sit','I need time to process before talking','I tend to let small things go'] },
 
   // LAYER 4
   { id:'activityLevel', layer:4, text:'How physically active are you day-to-day?', type:'slider', key:'activityLevel' },
-  { id:'diet', layer:4, text:'How would you describe your diet?', type:'radio', options:['Omnivore','Flexitarian','Vegetarian','Vegan','No real preference'] },
+  { id:'diet', layer:4, text:'How would you describe your diet?', type:'radio', options:['Omnivore — I eat everything','Flexitarian — mostly plants, meat occasionally','Vegetarian — no meat, dairy and eggs are fine','Vegan — fully plant-based','No strong preferences or restrictions'] },
   { id:'schedule', layer:4, text:'Are you more of a night owl or an early riser?', type:'radio', options:['Definitely a night owl','Slight night owl','Somewhere in between','Slight early riser','Definitely an early riser'] },
   { id:'tidiness', layer:4, text:'How tidy is your living space?', type:'slider', key:'tidiness' },
   { id:'livingPref', layer:4, text:'Where do you most want to live?', type:'radio', options:['City center','Suburbs','Small town','Rural / nature','Flexible'] },
-  { id:'interests', layer:4, text:'Select your interests and how central each is to your life.', sub:'Only select what\'s genuinely true. "Now & then" means occasional — something you do about once a month. "Core to me" means you\'d genuinely miss it.', type:'interests',
+  { id:'interests', layer:4, text:'Select your interests and how central each is to your life.', sub:'Only select what\'s genuinely true — leaving something unselected is itself a choice. "Now & then" means occasional — something you do about once a month. "Core to me" means you\'d genuinely miss it.', type:'interests',
     options:['Outdoors & hiking','Arts & culture','Food & cooking','Sports','Music','Travel','Fitness / gym','Gaming','Reading','Building & making things','Social causes','Film & TV','Dance','Spirituality'] },
 ];
 
@@ -826,6 +831,30 @@ function scoreStressPair(need, offer) {
   return needMap[need] === offer ? 1 : 0.2;
 }
 
+function scoreAttachment(a1, a2) {
+  if (!a1 || !a2) return 0.5;
+  const type = s => {
+    if (s.startsWith('Secure')) return 'secure';
+    if (s.startsWith('Anxious')) return 'anxious';
+    if (s.startsWith('Avoidant')) return 'avoidant';
+    if (s.startsWith('Fearful')) return 'fearful';
+    return 'unknown';
+  };
+  const t1 = type(a1), t2 = type(a2);
+  if (t1 === 'secure' && t2 === 'secure') return 1.0;
+  if ((t1 === 'anxious' && t2 === 'avoidant') || (t1 === 'avoidant' && t2 === 'anxious')) return 0.1;
+  if (t1 === 'secure' || t2 === 'secure') return 0.65;
+  if (t1 === t2) return 0.4;
+  return 0.3;
+}
+
+function scoreEmotionalStability(v1, v2) {
+  if (v1 === undefined || v2 === undefined) return 0.5;
+  const stability = 1 - (v1 + v2) / 8;
+  const similarity = 1 - Math.abs(v1 - v2) / 4;
+  return stability * 0.6 + similarity * 0.4;
+}
+
 function scoreInterests(int1, int2) {
   if (!int1 && !int2) return 0.5;
   const i1 = int1 || {}, i2 = int2 || {};
@@ -854,19 +883,23 @@ function computeScores() {
   const v_religiosity = scoreSliderSimilarity(p1.religiosity, p2.religiosity);
   const valuesScore = (v_career + v_goals + v_money + v_ambition + v_collective + v_family + v_religiosity) / 7;
 
-  // COMPLEMENTARITY (20%)
+  // COMPLEMENTARITY (15%)
   const c_dom = scoreComplementarity(p1.dominance, p2.dominance);
   const c_conflict = scoreComplementarity(p1.conflictDominance, p2.conflictDominance);
   const compScore = (c_dom + c_conflict) / 2;
 
-  // DYNAMICS (25%)
-  const d_ll    = scoreLoveLanguage(p1.loveLanguageGive, p2.loveLanguageReceive, p2.loveLanguageGive, p1.loveLanguageReceive);
-  const d_stress= scoreStressMatch(p1.stressNeed, p2.stressOffer, p2.stressNeed, p1.stressOffer);
-  const d_conflict = scoreRadioSimilarity(p1.conflictStyle, p2.conflictStyle);
-  const d_intro = scoreSliderSimilarity(p1.introExtro, p2.introExtro);
-  const dynamicsScore = (d_ll + d_stress + d_conflict + d_intro) / 4;
+  // DYNAMICS (30%) — love languages kept as conversation starters, not scored
+  const d_attachment = scoreAttachment(p1.attachmentStyle, p2.attachmentStyle);
+  const d_stability  = scoreEmotionalStability(p1.emotionalStability, p2.emotionalStability);
+  const d_stress     = scoreStressMatch(p1.stressNeed, p2.stressOffer, p2.stressNeed, p1.stressOffer);
+  const d_conflict   = scoreRadioSimilarity(p1.conflictStyle, p2.conflictStyle);
+  const d_intro      = scoreSliderSimilarity(p1.introExtro, p2.introExtro);
+  const dynamicsScore = (d_attachment + d_stability + d_stress + d_conflict + d_intro) / 5;
 
-  // LIFESTYLE (10%)
+  // PHYSICAL (10%)
+  const physicalScore = scoreRadioSimilarity(p1.physicalIntimacy, p2.physicalIntimacy);
+
+  // LIFESTYLE (5%)
   const l_activity = scoreSliderSimilarity(p1.activityLevel, p2.activityLevel);
   const l_diet     = scoreRadioSimilarity(p1.diet, p2.diet);
   const l_tidy     = scoreSliderSimilarity(p1.tidiness, p2.tidiness);
@@ -877,17 +910,18 @@ function computeScores() {
   // INTERESTS (5%)
   const interestsScore = scoreInterests(p1.interests, p2.interests);
 
-  // TOTAL
-  const total = valuesScore * 0.40 + compScore * 0.20 + dynamicsScore * 0.25 + lifestyleScore * 0.10 + interestsScore * 0.05;
+  // TOTAL (35 + 30 + 10 + 15 + 5 + 5 = 100%)
+  const total = valuesScore * 0.35 + compScore * 0.15 + dynamicsScore * 0.30 + physicalScore * 0.10 + lifestyleScore * 0.05 + interestsScore * 0.05;
 
   return {
     total: Math.round(total * 100),
     values: Math.round(valuesScore * 100),
     complementarity: Math.round(compScore * 100),
     dynamics: Math.round(dynamicsScore * 100),
+    physical: Math.round(physicalScore * 100),
     lifestyle: Math.round(lifestyleScore * 100),
     interests: Math.round(interestsScore * 100),
-    detail: { v_career, v_goals, v_money, v_ambition, v_collective, v_family, d_ll, d_stress, d_conflict, l_tidy, l_location }
+    detail: { v_career, v_goals, v_money, v_ambition, v_collective, v_family, d_attachment, d_stress, d_conflict, l_tidy, l_location }
   };
 }
 
@@ -897,14 +931,14 @@ function getInsights(scores) {
 
   // Strengths
   if (scores.detail.v_goals > 0.7) insights.push({ type:'strength', text:`You share a strong vision for the future — both of you prioritize similar life goals over the next decade.` });
-  if (scores.detail.d_ll > 0.7) insights.push({ type:'strength', text:`Your love languages are well-matched. The way each of you gives care closely aligns with how the other receives it.` });
+  if (scores.detail.d_attachment > 0.9) insights.push({ type:'strength', text:`You share a secure attachment foundation — one of the strongest individual predictors of long-term satisfaction found across relationship research.` });
   if (scores.detail.d_stress > 0.7) insights.push({ type:'strength', text:`When things get hard, you're naturally in sync. What ${p1Name} needs under stress is what ${p2Name} naturally offers, and vice versa.` });
   if (scores.complementarity > 65) insights.push({ type:'strength', text:`Your dynamic styles complement each other well — one of you tends to lead while the other flows, creating natural balance.` });
   if (scores.detail.v_money > 0.8) insights.push({ type:'strength', text:`You have closely aligned financial values — a surprisingly strong predictor of long-term relationship health.` });
 
   // Tensions
   if (scores.detail.v_money < 0.4) insights.push({ type:'tension', text:`Your approaches to money diverge noticeably. Research flags this as one of the top sources of recurring conflict. Worth an honest conversation.` });
-  if (scores.detail.d_ll < 0.4) insights.push({ type:'tension', text:`There's a mismatch in love languages — the way each of you gives affection may not land the way the other needs to receive it.` });
+  if (scores.detail.d_attachment < 0.3) insights.push({ type:'tension', text:`Your attachment styles suggest a potentially challenging dynamic. Anxious-avoidant pairings in particular can create push-pull cycles that are hard to break without conscious awareness.` });
   if (scores.detail.d_stress < 0.4) insights.push({ type:'tension', text:`Under stress, you each need something different from a partner — and what you naturally offer may not match what they need.` });
   if (scores.detail.v_goals < 0.4) insights.push({ type:'tension', text:`Your 10-year visions are pointing in different directions. This doesn't mean incompatibility, but it's worth exploring what you each actually want.` });
   if (scores.detail.l_tidy < 0.3) insights.push({ type:'tension', text:`Your tidiness styles are on opposite ends. Day-to-day living habits are a surprisingly common friction source — small thing, but real.` });
@@ -962,11 +996,12 @@ function showResults() {
   const filled = (scores.total / 100) * circumference;
 
   const breakdowns = [
-    { label: 'Values & Worldview', score: scores.values, weight: '40%', color: '#6db98a', note: 'Strongest long-term predictor of satisfaction.' },
-    { label: 'Dynamics & Communication', score: scores.dynamics, weight: '25%', color: '#c8a97e', note: 'Love languages, conflict & stress response.' },
-    { label: 'Complementarity', score: scores.complementarity, weight: '20%', color: '#8b6f9e', note: 'Balance of dominant & adaptive styles.' },
-    { label: 'Lifestyle', score: scores.lifestyle, weight: '10%', color: '#7ab8d4', note: 'Day-to-day habits and living preferences.' },
-    { label: 'Shared Interests', score: scores.interests, weight: '5%', color: '#d4846a', note: 'Overlap in core passions and hobbies.' },
+    { label: 'Values & Worldview', score: scores.values, weight: '35%', color: '#6db98a', note: 'Strongest long-term predictor of satisfaction.' },
+    { label: 'Dynamics & Communication', score: scores.dynamics, weight: '30%', color: '#c8a97e', note: 'Attachment style, emotional stability, conflict & stress.' },
+    { label: 'Physical & Intimacy', score: scores.physical, weight: '10%', color: '#d4846a', note: 'Alignment on physical connection and intimacy needs.' },
+    { label: 'Complementarity', score: scores.complementarity, weight: '15%', color: '#8b6f9e', note: 'Balance of dominant & adaptive styles.' },
+    { label: 'Lifestyle', score: scores.lifestyle, weight: '5%', color: '#7ab8d4', note: 'Day-to-day habits and living preferences.' },
+    { label: 'Shared Interests', score: scores.interests, weight: '5%', color: '#a97ec8', note: 'Overlap in core passions and hobbies.' },
   ];
 
   const resultsEl = document.getElementById('results-view');
@@ -991,7 +1026,7 @@ function showResults() {
         </div>
       </div>
       <div class="result-title">${p1Name} & ${p2Name}: <em style="color:var(--accent);font-style:italic;">${title}</em></div>
-      <div class="result-subtitle" style="color:var(--muted);font-size:14px;margin-top:8px;">Based on 32 questions across 4 compatibility layers</div>
+      <div class="result-subtitle" style="color:var(--muted);font-size:14px;margin-top:8px;">Based on 36 questions across 4 compatibility layers</div>
     </div>
 
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px 24px;margin-bottom:32px;">
