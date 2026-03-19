@@ -466,7 +466,7 @@
     </p>
     <div class="intro-cards">
       <div class="intro-card"><div class="intro-card-icon">🔒</div><h3>Private</h3><p>Answers stay in your browser. Nothing is sent anywhere.</p></div>
-      <div class="intro-card"><div class="intro-card-icon">⏱</div><h3>~8 minutes</h3><p>31 questions across 4 layers of compatibility.</p></div>
+      <div class="intro-card"><div class="intro-card-icon">⏱</div><h3>~8 minutes</h3><p>32 questions across 4 layers of compatibility.</p></div>
       <div class="intro-card"><div class="intro-card-icon">📊</div><h3>Research-backed</h3><p>Based on Gottman, similarity-attraction, and complementarity research.</p></div>
       <div class="intro-card"><div class="intro-card-icon">💬</div><h3>Conversation starter</h3><p>Results designed to spark honest discussion, not judge your relationship.</p></div>
     </div>
@@ -527,6 +527,7 @@ const questions = [
   // LAYER 1
   { id:'age', layer:1, text:'How old are you?', type:'number', placeholder:'Enter your age' },
   { id:'gender', layer:1, text:'How do you identify?', type:'radio', options:['Man','Woman','Non-binary','Genderqueer','Prefer to self-describe'] },
+  { id:'bodyType', layer:1, text:'How would you describe your body type?', type:'radio', options:['Slim','Athletic','Average','Curvy / Stocky','Plus-size'] },
   { id:'orientation', layer:1, text:'What best describes your sexual orientation?', type:'radio', options:['Straight','Gay / Lesbian','Bisexual','Pansexual','Prefer to self-describe'] },
   { id:'relationshipGoal', layer:1, text:'What are you looking for in a relationship?', type:'radio', options:['Casual connection','Long-term partnership','Open to both','Not sure yet'] },
   { id:'wantsKids', layer:1, text:'How do you feel about having children?', type:'radio', options:['Yes, I want kids','No, I don\'t want kids','I have kids and I\'m done','Open to it'] },
@@ -990,14 +991,26 @@ function showResults() {
         </div>
       </div>
       <div class="result-title">${p1Name} & ${p2Name}: <em style="color:var(--accent);font-style:italic;">${title}</em></div>
-      <div class="result-subtitle" style="color:var(--muted);font-size:14px;margin-top:8px;">Based on 31 questions across 4 compatibility layers</div>
+      <div class="result-subtitle" style="color:var(--muted);font-size:14px;margin-top:8px;">Based on 32 questions across 4 compatibility layers</div>
     </div>
 
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px 24px;margin-bottom:32px;">
       <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;">Where you land</div>
-      <div style="position:relative;margin-bottom:12px;">
+      <div style="position:relative;margin-bottom:4px;">
         <div style="height:8px;border-radius:4px;background:linear-gradient(to right,#c0504a 0%,#d4846a 35%,#d4a86a 50%,#8bc87a 65%,#6db98a 80%,#c8a97e 100%);"></div>
         <div style="position:absolute;top:50%;left:${Math.min(Math.max(scores.total,2),98)}%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:var(--bg);border:2.5px solid #fff;box-shadow:0 0 0 3px rgba(255,255,255,0.2),0 2px 8px rgba(0,0,0,0.6);"></div>
+      </div>
+      <div style="position:relative;height:8px;margin-bottom:2px;">
+        <div style="position:absolute;left:25%;transform:translateX(-50%);width:1px;height:8px;background:var(--border);"></div>
+        <div style="position:absolute;left:50%;transform:translateX(-50%);width:1px;height:8px;background:var(--border);"></div>
+        <div style="position:absolute;left:75%;transform:translateX(-50%);width:1px;height:8px;background:var(--border);"></div>
+      </div>
+      <div style="position:relative;height:14px;margin-bottom:16px;">
+        <div style="position:absolute;left:0;font-size:10px;color:var(--muted);">0</div>
+        <div style="position:absolute;left:25%;transform:translateX(-50%);font-size:10px;color:var(--muted);">25</div>
+        <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:10px;color:var(--muted);">50</div>
+        <div style="position:absolute;left:75%;transform:translateX(-50%);font-size:10px;color:var(--muted);">75</div>
+        <div style="position:absolute;right:0;font-size:10px;color:var(--muted);">100</div>
       </div>
       <div style="display:flex;">
         <div style="width:35%;font-size:10px;color:#d4846a;letter-spacing:0.04em;line-height:1.4;">Growth Edges<br>Ahead</div>
@@ -1034,11 +1047,7 @@ function showResults() {
       </p>
     </div>
 
-    <div style="background:linear-gradient(135deg,rgba(139,111,158,0.1),rgba(200,169,126,0.1));border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-top:24px;text-align:center;">
-      <div style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Compatibility Score</div>
-      <div style="font-family:'Playfair Display',serif;font-size:52px;color:var(--accent);line-height:1;">${scores.total}<span style="font-size:22px;color:var(--muted)"> / 100</span></div>
-      <div style="font-family:'Playfair Display',serif;font-size:18px;margin:8px 0 4px;">${p1Name} & ${p2Name}</div>
-      <div style="font-size:14px;color:var(--muted);margin-bottom:20px;font-style:italic;">${title}</div>
+    <div style="text-align:center;margin-top:32px;">
       <button class="btn btn-primary" id="share-btn" onclick="shareResults()">Share Results ↗</button>
     </div>
 
