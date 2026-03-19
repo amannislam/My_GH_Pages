@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -511,6 +510,7 @@ let p1Name = 'Partner 1', p2Name = 'Partner 2';
 let currentPartner = 1;
 let answers = { p1: {}, p2: {} };
 let currentQ = 0;
+const DEBUG = new URLSearchParams(window.location.search).has('debug');
 
 const SLIDER_LABELS = {
   careerVsRelationships: ['All career', 'Balanced', 'All relationships'],
@@ -559,7 +559,7 @@ const questions = [
   { id:'schedule', layer:4, text:'Are you more of a night owl or an early riser?', type:'radio', options:['Definitely a night owl','Slight night owl','Somewhere in between','Slight early riser','Definitely an early riser'] },
   { id:'tidiness', layer:4, text:'How tidy is your living space?', type:'slider', key:'tidiness' },
   { id:'livingPref', layer:4, text:'Where do you most want to live?', type:'radio', options:['City center','Suburbs','Small town','Rural / nature','Flexible'] },
-  { id:'interests', layer:4, text:'Select your interests and how central each is to your life.', sub:'Tap once for "I enjoy it", twice for "Core to me", three times to remove.', type:'interests',
+  { id:'interests', layer:4, text:'Select your interests and how central each is to your life.', sub:'Only select what\'s genuinely true. "Now & then" means occasional — something you do about once a month. "Core to me" means you\'d genuinely miss it.', type:'interests',
     options:['Outdoors & hiking','Arts & culture','Food & cooking','Sports','Music','Travel','Fitness / gym','Gaming','Reading','Building & making things','Social causes','Film & TV','Dance','Spirituality'] },
 ];
 
@@ -621,6 +621,7 @@ function renderQuestion() {
   // Attach events
   attachInputEvents(q, ans);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  renderDebugPanel();
 }
 
 function renderInput(q, currentVal) {
@@ -659,7 +660,7 @@ function renderInput(q, currentVal) {
       return `<div class="interest-item">
         <div class="interest-name">${o}</div>
         <div class="importance-btns">
-          <button class="imp-btn ${s===1?'active-enjoy':''}" onclick="setInterest('${q.id}', '${o}', 1, this.parentElement)">Enjoy it</button>
+          <button class="imp-btn ${s===1?'active-enjoy':''}" onclick="setInterest('${q.id}', '${o}', 1, this.parentElement)">Now & then</button>
           <button class="imp-btn ${s===2?'active-core':''}" onclick="setInterest('${q.id}', '${o}', 2, this.parentElement)">Core to me</button>
         </div>
       </div>`;
@@ -1010,6 +1011,55 @@ function showResults() {
   `;
 
   resultsEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ══ DEBUG ════════════════════════════════════════════════════════════════════
+
+function renderDebugPanel() {
+  if (!DEBUG) return;
+  let panel = document.getElementById('debug-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'debug-panel';
+    panel.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#1a1820;border:1px solid #c8a97e;border-radius:8px;padding:14px 16px;z-index:9999;font-family:"DM Sans",sans-serif;min-width:210px;box-shadow:0 4px 24px rgba(0,0,0,0.6);';
+    panel.innerHTML = `
+      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#c8a97e;margin-bottom:10px;">⚙ Debug</div>
+      <div style="margin-bottom:8px;">
+        <div style="font-size:11px;color:#7a7585;margin-bottom:4px;">Partner</div>
+        <select id="dbg-partner" onchange="debugJump()" style="width:100%;background:#221f2a;border:1px solid #2e2b38;border-radius:6px;color:#e8e4f0;padding:5px 8px;font-size:13px;outline:none;">
+          <option value="1">1 · ${p1Name}</option>
+          <option value="2">2 · ${p2Name}</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:#7a7585;margin-bottom:4px;">Question</div>
+        <select id="dbg-question" onchange="debugJump()" style="width:100%;background:#221f2a;border:1px solid #2e2b38;border-radius:6px;color:#e8e4f0;padding:5px 8px;font-size:13px;outline:none;">
+          ${questions.map((q,i) => `<option value="${i}">Q${i+1} · ${q.id}</option>`).join('')}
+        </select>
+      </div>
+      <button onclick="debugSkipToResults()" style="width:100%;background:#c8a97e;color:#0f0e11;border:none;border-radius:6px;padding:7px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">Skip to Results →</button>
+    `;
+    document.body.appendChild(panel);
+  }
+  document.getElementById('dbg-partner').value = currentPartner;
+  document.getElementById('dbg-question').value = currentQ;
+}
+
+function debugJump() {
+  currentPartner = parseInt(document.getElementById('dbg-partner').value);
+  currentQ = parseInt(document.getElementById('dbg-question').value);
+  renderQuestion();
+}
+
+function debugSkipToResults() {
+  document.getElementById('survey-view').style.display = 'none';
+  showResults();
+}
+
+if (DEBUG) {
+  document.getElementById('name1').value = 'Alex';
+  document.getElementById('name2').value = 'Jordan';
+  startSurvey();
 }
 </script>
 </body>
