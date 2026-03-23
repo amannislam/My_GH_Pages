@@ -510,6 +510,8 @@ let p1Name = 'Partner 1', p2Name = 'Partner 2';
 let currentPartner = 1;
 let answers = { p1: {}, p2: {} };
 let currentQ = 0;
+let selfRatings = { p1: {}, p2: {} };
+let currentSelfRater = 1;
 const DEBUG = new URLSearchParams(window.location.search).has('debug');
 
 const SLIDER_LABELS = {
@@ -523,6 +525,15 @@ const SLIDER_LABELS = {
   religiosity: ['Not part of my daily life', 'Somewhat present', 'Central to how I live'],
   emotionalStability: ['Very steady — rarely overwhelmed', 'Balanced', 'Very intense — I feel things deeply'],
 };
+
+const SELF_RATING_CATEGORIES = [
+  { id:'sr_values',          label:'Values & Life Goals',       text:'How aligned do you feel in your core values and direction in life?' },
+  { id:'sr_dynamics',        label:'Communication',             text:'How well do you communicate and work through challenges together?' },
+  { id:'sr_physical',        label:'Physical & Intimacy',       text:'How satisfied are you with the physical and intimate connection?' },
+  { id:'sr_complementarity', label:'Balance & Compatibility',   text:'How well do your personalities and styles complement each other?' },
+  { id:'sr_lifestyle',       label:'Lifestyle Fit',             text:'How compatible are your day-to-day habits and preferences?' },
+  { id:'sr_overall',         label:'Overall Satisfaction',      text:'Overall, how satisfied are you in this relationship right now?' },
+];
 
 const questions = [
   // LAYER 1
@@ -746,7 +757,7 @@ function isLastQuestion() {
 }
 
 function navigate(dir) {
-  if (dir === 1 && isLastQuestion()) { showResults(); return; }
+  if (dir === 1 && isLastQuestion()) { showSelfRatingPhase(1); return; }
   if (dir === 1) {
     if (currentQ < TOTAL - 1) { currentQ++; }
     else if (currentPartner === 1) {
@@ -978,6 +989,102 @@ async function shareResults() {
   }
 }
 
+// ══ SELF-RATING ══════════════════════════════════════════════════════════════
+
+function showSelfRatingPhase(partnerNum) {
+  currentSelfRater = partnerNum;
+  const name = partnerNum === 1 ? p1Name : p2Name;
+  const ratings = partnerNum === 1 ? selfRatings.p1 : selfRatings.p2;
+  const container = document.getElementById('questions-container');
+
+  let html = `<div class="question-card fade-in">
+    <div class="q-label">${name} · Relationship Self-Assessment</div>
+    <div class="q-text">How do you experience this relationship right now?</div>
+    <div class="q-sub">Rate each dimension honestly. Responses stay private until the final results screen.</div>
+  </div>`;
+
+  SELF_RATING_CATEGORIES.forEach(cat => {
+    const cur = ratings[cat.id];
+    html += `<div class="question-card fade-in${cur !== undefined ? ' answered' : ''}" id="sr-card-${cat.id}">
+      <div class="q-label">${cat.label}</div>
+      <div class="q-text" style="font-size:17px;margin-bottom:20px;">${cat.text}</div>
+      <div style="display:flex;gap:8px;">
+        ${[1,2,3,4,5].map(n => `<button
+          onclick="saveSelfRating('${cat.id}', ${n}, this)"
+          data-val="${n}"
+          style="flex:1;padding:12px 0;border-radius:8px;border:1px solid ${cur===n?'var(--accent)':'var(--border)'};background:${cur===n?'rgba(200,169,126,0.2)':'var(--surface2)'};color:${cur===n?'var(--accent)':'var(--muted)'};font-size:16px;font-weight:500;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;">${n}</button>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px;">
+        <span>Needs work</span><span>Excellent</span>
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+
+  const nextBtn = document.getElementById('next-btn');
+  const prevBtn = document.getElementById('prev-btn');
+  prevBtn.style.display = 'none';
+  nextBtn.style.display = '';
+  nextBtn.textContent = partnerNum === 1 ? `Done — pass to ${p2Name} →` : 'See Results →';
+  nextBtn.onclick = function() { submitSelfRating(partnerNum); };
+  nextBtn.disabled = !SELF_RATING_CATEGORIES.every(c => ratings[c.id] !== undefined);
+
+  document.getElementById('progress-label').textContent = `${name} · Self-Assessment`;
+  document.getElementById('progress-pct').textContent = '100%';
+  document.getElementById('progress-fill').style.width = '100%';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function saveSelfRating(id, val, btn) {
+  const ratings = currentSelfRater === 1 ? selfRatings.p1 : selfRatings.p2;
+  ratings[id] = val;
+  btn.parentElement.querySelectorAll('button').forEach(b => {
+    const sel = parseInt(b.dataset.val) === val;
+    b.style.background = sel ? 'rgba(200,169,126,0.2)' : 'var(--surface2)';
+    b.style.color = sel ? 'var(--accent)' : 'var(--muted)';
+    b.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
+  });
+  const card = document.getElementById(`sr-card-${id}`);
+  if (card) card.classList.add('answered');
+  document.getElementById('next-btn').disabled = !SELF_RATING_CATEGORIES.every(c => ratings[c.id] !== undefined);
+}
+
+function submitSelfRating(partnerNum) {
+  if (partnerNum === 1) {
+    const container = document.getElementById('questions-container');
+    container.innerHTML = `<div class="question-card fade-in" style="text-align:center;padding:48px 28px;">
+      <div style="font-size:40px;margin-bottom:16px;">📊</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:12px;">${p1Name} is done!</div>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:380px;margin:0 auto 24px;">
+        Now pass to <strong style="color:var(--text)">${p2Name}</strong> to rate the relationship from their perspective.
+      </p>
+      <button class="btn btn-primary" onclick="showSelfRatingPhase(2)" style="font-size:15px;padding:14px 36px;">I'm ready, ${p2Name} →</button>
+    </div>`;
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('prev-btn').style.display = 'none';
+  } else {
+    document.getElementById('survey-view').style.display = 'none';
+    showResults();
+  }
+}
+
+function computeSelfRatedScores() {
+  const p1 = selfRatings.p1, p2 = selfRatings.p2;
+  const avg = id => {
+    const vals = [p1[id], p2[id]].filter(v => v !== undefined);
+    return vals.length ? Math.round((vals.reduce((a,b) => a+b,0) / vals.length / 5) * 100) : null;
+  };
+  return {
+    values:          avg('sr_values'),
+    dynamics:        avg('sr_dynamics'),
+    physical:        avg('sr_physical'),
+    complementarity: avg('sr_complementarity'),
+    lifestyle:       avg('sr_lifestyle'),
+    overall:         avg('sr_overall'),
+  };
+}
+
 function getTitle(score) {
   if (score >= 80) return 'Deeply Aligned';
   if (score >= 65) return 'Strongly Compatible';
@@ -1003,6 +1110,50 @@ function showResults() {
     { label: 'Lifestyle', score: scores.lifestyle, weight: '5%', color: '#7ab8d4', note: 'Day-to-day habits and living preferences.' },
     { label: 'Shared Interests', score: scores.interests, weight: '5%', color: '#a97ec8', note: 'Overlap in core passions and hobbies.' },
   ];
+
+  const selfScores = computeSelfRatedScores();
+  const comparisons = [
+    { label:'Values & Life Goals',       calculated:scores.values,          selfRated:selfScores.values },
+    { label:'Communication & Dynamics',  calculated:scores.dynamics,         selfRated:selfScores.dynamics },
+    { label:'Physical & Intimacy',       calculated:scores.physical,         selfRated:selfScores.physical },
+    { label:'Complementarity',           calculated:scores.complementarity,  selfRated:selfScores.complementarity },
+    { label:'Lifestyle Fit',             calculated:scores.lifestyle,        selfRated:selfScores.lifestyle },
+    { label:'Overall',                   calculated:scores.total,            selfRated:selfScores.overall },
+  ].filter(c => c.selfRated !== null);
+
+  const comparisonHtml = comparisons.length ? `
+    <h2 style="font-family:'Playfair Display',serif;font-size:20px;margin:32px 0 16px;">Calculated vs. how you see it</h2>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:32px;">
+      ${comparisons.map((c, i) => {
+        const delta = c.selfRated - c.calculated;
+        const absDelta = Math.abs(delta);
+        const deltaColor = delta > 10 ? 'var(--success)' : delta < -10 ? '#d4846a' : 'var(--muted)';
+        const deltaLabel = (delta > 0 ? '+' : '') + delta;
+        const deltaNote = absDelta <= 5 ? 'closely aligned' : delta > 0 ? 'feels better than predicted' : 'gap worth exploring';
+        return `<div style="padding:16px 20px;${i > 0 ? 'border-top:1px solid var(--border);' : ''}">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+            <span style="font-size:13px;font-weight:500;color:var(--text);">${c.label}</span>
+            <span style="font-size:11px;color:${deltaColor};">${deltaLabel} &nbsp;<span style="font-style:italic;font-weight:300;">${deltaNote}</span></span>
+          </div>
+          <div style="display:grid;gap:7px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:10px;color:var(--muted);width:68px;flex-shrink:0;letter-spacing:0.06em;">CALCULATED</span>
+              <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+                <div style="width:${c.calculated}%;height:100%;background:var(--accent2);border-radius:3px;"></div>
+              </div>
+              <span style="font-size:12px;color:var(--muted);width:32px;text-align:right;">${c.calculated}%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:10px;color:var(--muted);width:68px;flex-shrink:0;letter-spacing:0.06em;">SELF-RATED</span>
+              <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+                <div style="width:${c.selfRated}%;height:100%;background:var(--accent);border-radius:3px;"></div>
+              </div>
+              <span style="font-size:12px;color:var(--muted);width:32px;text-align:right;">${c.selfRated}%</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
 
   const resultsEl = document.getElementById('results-view');
   resultsEl.style.display = 'block';
@@ -1066,6 +1217,8 @@ function showResults() {
         </div>
       `).join('')}
     </div>
+
+    ${comparisonHtml}
 
     <h2 style="font-family:'Playfair Display',serif;font-size:20px;margin:32px 0 16px;">What the numbers suggest</h2>
     ${insights.map(i => `
