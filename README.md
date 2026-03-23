@@ -511,6 +511,7 @@ let currentPartner = 1;
 let answers = { p1: {}, p2: {} };
 let currentQ = 0;
 let selfRatings = { p1: {}, p2: {} };
+let priorityRankings = { p1: [], p2: [] };
 let currentSelfRater = 1;
 const DEBUG = new URLSearchParams(window.location.search).has('debug');
 
@@ -525,6 +526,24 @@ const SLIDER_LABELS = {
   religiosity: ['Not part of my daily life', 'Somewhat present', 'Central to how I live'],
   emotionalStability: ['Very steady — rarely overwhelmed', 'Balanced', 'Very intense — I feel things deeply'],
 };
+
+const WEIGHTS = {
+  values:          0.35,
+  dynamics:        0.30,
+  physical:        0.10,
+  complementarity: 0.15,
+  lifestyle:       0.05,
+  interests:       0.05,
+};
+
+const PRIORITY_CATEGORIES = [
+  { id:'values',          label:'Values & Life Goals' },
+  { id:'dynamics',        label:'Communication & Dynamics' },
+  { id:'physical',        label:'Physical & Intimacy' },
+  { id:'complementarity', label:'Balance & Compatibility' },
+  { id:'lifestyle',       label:'Lifestyle Fit' },
+  { id:'interests',       label:'Shared Interests' },
+];
 
 const SELF_RATING_CATEGORIES = [
   { id:'sr_values',          label:'Values & Life Goals',       text:'How aligned do you feel in your core values and direction in life?' },
@@ -551,7 +570,7 @@ const questions = [
   { id:'politics', layer:1, text:'Where do you sit politically?', sub:'Used only to assess alignment, not to judge.', type:'slider', key:'politicalAlign' },
 
   // LAYER 2
-  { id:'careerVsRelationships', layer:2, text:'Right now in life, which matters more to you?', type:'slider', key:'careerVsRelationships' },
+  { id:'careerVsRelationships', layer:2, text:'Right now in life, which matters more to you?', sub:'All career — professional growth, ambition, and financial progress shape most of your decisions. All relationships — time with loved ones, emotional connection, and your personal life come first.', type:'slider', key:'careerVsRelationships' },
   { id:'tenYearGoals', layer:2, text:'In 10 years, what feels most important to you?', sub:'Tap to rank your top 3, most important first.', type:'rank3', options:['Financial security','Adventure & exploration','Starting / growing a family','Creative fulfillment','Community & belonging','Personal growth'], max:3 },
   { id:'moneyStyle', layer:2, text:'How do you think about money?', type:'slider', key:'moneyStyle' },
   { id:'ambition', layer:2, text:'How would you describe your relationship with ambition and where you direct your energy?', type:'radio', options:['Very driven — career and achievement come first','I work to live — balance matters more than ambition','Lifestyle-focused — personal life, relationships, and experiences are my priority','Still figuring out what drives me'] },
@@ -801,13 +820,11 @@ function isLastQuestion() {
 }
 
 function navigate(dir) {
-  if (dir === 1 && isLastQuestion()) { showSelfRatingPhase(1); return; }
+  if (dir === 1 && isLastQuestion()) { showSelfRatingPhase(2); return; }
   if (dir === 1) {
     if (currentQ < TOTAL - 1) { currentQ++; }
     else if (currentPartner === 1) {
-      currentPartner = 2; currentQ = 0;
-      // Brief transition message
-      showPartnerTransition();
+      showSelfRatingPhase(1);
       return;
     }
   } else {
@@ -833,7 +850,11 @@ function showPartnerTransition() {
 
 function continueP2() {
   document.getElementById('prev-btn').style.display = '';
-  document.getElementById('next-btn').style.display = '';
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.style.display = '';
+  nextBtn.onclick = () => navigate(1);
+  nextBtn.textContent = 'Continue →';
+  nextBtn.disabled = false;
   renderQuestion();
 }
 
@@ -983,7 +1004,7 @@ function computeScores() {
   const interestsScore = scoreInterests(p1.interests, p2.interests);
 
   // TOTAL (35 + 30 + 10 + 15 + 5 + 5 = 100%)
-  const total = valuesScore * 0.35 + compScore * 0.15 + dynamicsScore * 0.30 + physicalScore * 0.10 + lifestyleScore * 0.05 + interestsScore * 0.05;
+  const total = valuesScore * WEIGHTS.values + compScore * WEIGHTS.complementarity + dynamicsScore * WEIGHTS.dynamics + physicalScore * WEIGHTS.physical + lifestyleScore * WEIGHTS.lifestyle + interestsScore * WEIGHTS.interests;
 
   return {
     total: Math.round(total * 100),
@@ -1081,6 +1102,23 @@ function showSelfRatingPhase(partnerNum) {
     </div>`;
   });
 
+  const curRankings = partnerNum === 1 ? priorityRankings.p1 : priorityRankings.p2;
+  html += `<div class="question-card fade-in${curRankings.length === PRIORITY_CATEGORIES.length ? ' answered' : ''}" id="sr-card-priority">
+    <div class="q-label">Priority Ranking</div>
+    <div class="q-text" style="font-size:17px;margin-bottom:8px;">Which dimensions matter most to you?</div>
+    <div class="q-sub" style="margin-bottom:16px;">Tap in order from most to least important. Tap again to deselect.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      ${PRIORITY_CATEGORIES.map(cat => {
+        const rank = curRankings.indexOf(cat.id);
+        return `<button id="prk-${cat.id}" onclick="savePriorityRank('${cat.id}')"
+          style="position:relative;padding:14px 12px 14px 14px;border-radius:10px;border:1px solid ${rank !== -1 ? 'var(--accent)' : 'var(--border)'};background:${rank !== -1 ? 'rgba(200,169,126,0.2)' : 'var(--surface2)'};color:${rank !== -1 ? 'var(--accent)' : 'var(--muted)'};font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;transition:all 0.15s;">
+          <span id="prk-badge-${cat.id}" style="${rank !== -1 ? '' : 'display:none;'}position:absolute;top:6px;right:8px;font-size:11px;font-weight:700;color:var(--accent);">${rank !== -1 ? '#' + (rank + 1) : ''}</span>
+          ${cat.label}
+        </button>`;
+      }).join('')}
+    </div>
+  </div>`;
+
   container.innerHTML = html;
 
   const nextBtn = document.getElementById('next-btn');
@@ -1089,7 +1127,7 @@ function showSelfRatingPhase(partnerNum) {
   nextBtn.style.display = '';
   nextBtn.textContent = partnerNum === 1 ? `Done — pass to ${p2Name} →` : 'See Results →';
   nextBtn.onclick = function() { submitSelfRating(partnerNum); };
-  nextBtn.disabled = !SELF_RATING_CATEGORIES.every(c => ratings[c.id] !== undefined);
+  nextBtn.disabled = !isRatingComplete();
 
   document.getElementById('progress-label').textContent = `${name} · Self-Assessment`;
   document.getElementById('progress-pct').textContent = '100%';
@@ -1108,22 +1146,53 @@ function saveSelfRating(id, val, btn) {
   });
   const card = document.getElementById(`sr-card-${id}`);
   if (card) card.classList.add('answered');
-  document.getElementById('next-btn').disabled = !SELF_RATING_CATEGORIES.every(c => ratings[c.id] !== undefined);
+  document.getElementById('next-btn').disabled = !isRatingComplete();
+}
+
+function isRatingComplete() {
+  const ratings = currentSelfRater === 1 ? selfRatings.p1 : selfRatings.p2;
+  const rankings = currentSelfRater === 1 ? priorityRankings.p1 : priorityRankings.p2;
+  return SELF_RATING_CATEGORIES.every(c => ratings[c.id] !== undefined) && rankings.length === PRIORITY_CATEGORIES.length;
+}
+
+function savePriorityRank(id) {
+  const rankings = currentSelfRater === 1 ? priorityRankings.p1 : priorityRankings.p2;
+  const idx = rankings.indexOf(id);
+  if (idx !== -1) {
+    rankings.splice(idx, 1);
+  } else {
+    rankings.push(id);
+  }
+  PRIORITY_CATEGORIES.forEach(cat => {
+    const rank = rankings.indexOf(cat.id);
+    const btn = document.getElementById(`prk-${cat.id}`);
+    const badge = document.getElementById(`prk-badge-${cat.id}`);
+    if (!btn) return;
+    if (rank !== -1) {
+      badge.textContent = '#' + (rank + 1);
+      badge.style.display = '';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.background = 'rgba(200,169,126,0.2)';
+      btn.style.color = 'var(--accent)';
+    } else {
+      badge.style.display = 'none';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.background = 'var(--surface2)';
+      btn.style.color = 'var(--muted)';
+    }
+  });
+  const priorityCard = document.getElementById('sr-card-priority');
+  if (priorityCard) {
+    if (rankings.length === PRIORITY_CATEGORIES.length) priorityCard.classList.add('answered');
+    else priorityCard.classList.remove('answered');
+  }
+  document.getElementById('next-btn').disabled = !isRatingComplete();
 }
 
 function submitSelfRating(partnerNum) {
   if (partnerNum === 1) {
-    const container = document.getElementById('questions-container');
-    container.innerHTML = `<div class="question-card fade-in" style="text-align:center;padding:48px 28px;">
-      <div style="font-size:40px;margin-bottom:16px;">📊</div>
-      <div style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:12px;">${p1Name} is done!</div>
-      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:380px;margin:0 auto 24px;">
-        Now pass to <strong style="color:var(--text)">${p2Name}</strong> to rate the relationship from their perspective.
-      </p>
-      <button class="btn btn-primary" onclick="showSelfRatingPhase(2)" style="font-size:15px;padding:14px 36px;">I'm ready, ${p2Name} →</button>
-    </div>`;
-    document.getElementById('next-btn').style.display = 'none';
-    document.getElementById('prev-btn').style.display = 'none';
+    currentPartner = 2; currentQ = 0;
+    showPartnerTransition();
   } else {
     document.getElementById('survey-view').style.display = 'none';
     showResults();
@@ -1164,12 +1233,12 @@ function showResults() {
   const filled = (scores.total / 100) * circumference;
 
   const breakdowns = [
-    { label: 'Values & Worldview', score: scores.values, weight: '35%', color: '#6db98a', note: 'Strongest long-term predictor of satisfaction.' },
-    { label: 'Dynamics & Communication', score: scores.dynamics, weight: '30%', color: '#c8a97e', note: 'Attachment style, emotional stability, conflict & stress.' },
-    { label: 'Physical & Intimacy', score: scores.physical, weight: '10%', color: '#d4846a', note: 'Alignment on physical connection and intimacy needs.' },
-    { label: 'Complementarity', score: scores.complementarity, weight: '15%', color: '#8b6f9e', note: 'Balance of dominant & adaptive styles.' },
-    { label: 'Lifestyle', score: scores.lifestyle, weight: '5%', color: '#7ab8d4', note: 'Day-to-day habits and living preferences.' },
-    { label: 'Shared Interests', score: scores.interests, weight: '5%', color: '#a97ec8', note: 'Overlap in core passions and hobbies.' },
+    { label: 'Values & Worldview', score: scores.values, weight: Math.round(WEIGHTS.values * 100) + '%', color: '#6db98a', note: 'Strongest long-term predictor of satisfaction.' },
+    { label: 'Dynamics & Communication', score: scores.dynamics, weight: Math.round(WEIGHTS.dynamics * 100) + '%', color: '#c8a97e', note: 'Attachment style, emotional stability, conflict & stress.' },
+    { label: 'Physical & Intimacy', score: scores.physical, weight: Math.round(WEIGHTS.physical * 100) + '%', color: '#d4846a', note: 'Alignment on physical connection and intimacy needs.' },
+    { label: 'Complementarity', score: scores.complementarity, weight: Math.round(WEIGHTS.complementarity * 100) + '%', color: '#8b6f9e', note: 'Balance of dominant & adaptive styles.' },
+    { label: 'Lifestyle', score: scores.lifestyle, weight: Math.round(WEIGHTS.lifestyle * 100) + '%', color: '#7ab8d4', note: 'Day-to-day habits and living preferences.' },
+    { label: 'Shared Interests', score: scores.interests, weight: Math.round(WEIGHTS.interests * 100) + '%', color: '#a97ec8', note: 'Overlap in core passions and hobbies.' },
   ];
 
   const selfScores = computeSelfRatedScores();
@@ -1280,6 +1349,29 @@ function showResults() {
     </div>
 
     ${comparisonHtml}
+
+    ${(priorityRankings.p1.length === PRIORITY_CATEGORIES.length && priorityRankings.p2.length === PRIORITY_CATEGORIES.length) ? `
+    <h2 style="font-family:'Playfair Display',serif;font-size:20px;margin:32px 0 16px;">What you each prioritize</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:32px;">
+      ${[1,2].map(pNum => {
+        const name = pNum === 1 ? p1Name : p2Name;
+        const rankings = pNum === 1 ? priorityRankings.p1 : priorityRankings.p2;
+        const otherRankings = pNum === 1 ? priorityRankings.p2 : priorityRankings.p1;
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;">
+          <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">${name}</div>
+          ${rankings.map((id, i) => {
+            const cat = PRIORITY_CATEGORIES.find(c => c.id === id);
+            const sharedRank = otherRankings.indexOf(id);
+            const isTopMatch = i <= 2 && sharedRank <= 2;
+            return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;${i > 0 ? 'border-top:1px solid var(--border);' : ''}">
+              <span style="font-size:11px;font-weight:700;color:var(--muted);width:16px;flex-shrink:0;">${i+1}</span>
+              <span style="font-size:13px;color:${isTopMatch ? 'var(--success)' : 'var(--text)'};">${cat ? cat.label : id}</span>
+              ${isTopMatch ? '<span style="font-size:10px;color:var(--success);margin-left:auto;">shared</span>' : ''}
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>` : ''}
 
     <h2 style="font-family:'Playfair Display',serif;font-size:20px;margin:32px 0 16px;">What the numbers suggest</h2>
     ${insights.map(i => `
