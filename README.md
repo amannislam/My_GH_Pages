@@ -552,7 +552,7 @@ const questions = [
 
   // LAYER 2
   { id:'careerVsRelationships', layer:2, text:'Right now in life, which matters more to you?', type:'slider', key:'careerVsRelationships' },
-  { id:'tenYearGoals', layer:2, text:'In 10 years, what feels most important to you?', sub:'Pick up to 2.', type:'multiselect', options:['Financial security','Adventure & exploration','Starting / growing a family','Creative fulfillment','Community & belonging','Personal growth'], max:2 },
+  { id:'tenYearGoals', layer:2, text:'In 10 years, what feels most important to you?', sub:'Tap to rank your top 3, most important first.', type:'rank3', options:['Financial security','Adventure & exploration','Starting / growing a family','Creative fulfillment','Community & belonging','Personal growth'], max:3 },
   { id:'moneyStyle', layer:2, text:'How do you think about money?', type:'slider', key:'moneyStyle' },
   { id:'ambition', layer:2, text:'How would you describe your relationship with ambition and where you direct your energy?', type:'radio', options:['Very driven — career and achievement come first','I work to live — balance matters more than ambition','Lifestyle-focused — personal life, relationships, and experiences are my priority','Still figuring out what drives me'] },
   { id:'collectivism', layer:2, text:'How important is social justice and collective responsibility to you?', type:'radio', options:['Core to my identity — it shapes my choices','Important, but not the center of my life','I focus more on personal responsibility'] },
@@ -665,6 +665,23 @@ function renderInput(q, currentVal) {
       <div class="slider-value" id="slider-display">${getSliderLabel(val, q.key)}</div>
     </div>`;
   }
+  if (q.type === 'rank3') {
+    const ranked = currentVal || [];
+    return `<div class="options vertical" id="rank3-${q.id}">
+      ${q.options.map(o => {
+        const rankIdx = ranked.indexOf(o);
+        const isRanked = rankIdx !== -1;
+        const rankNum = rankIdx + 1;
+        const rankLabel = ['','1ST','2ND','3RD'][rankNum] || '';
+        return `<div class="option-tile ${isRanked ? 'selected' : ''}" data-val="${o}" onclick="toggleRank('${q.id}', '${o}', ${q.max||3}, this)">
+          <span class="check" style="${isRanked ? 'background:var(--accent2);border-color:var(--accent2);color:white;font-size:12px;font-weight:600;' : ''}">${isRanked ? rankNum : ''}</span>
+          <span>${o}</span>
+          <span class="rank-badge" style="margin-left:auto;font-size:10px;color:var(--accent2);letter-spacing:0.08em;">${rankLabel}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="tag-note">Tap a ranked item again to remove it.</div>`;
+  }
   if (q.type === 'multiselect') {
     const sel = currentVal || [];
     return `<div class="tags">${q.options.map(o =>
@@ -720,6 +737,33 @@ function saveAnswer(id, val) {
   else answers.p2[id] = val;
   const card = document.getElementById('qcard');
   if (card) card.classList.add('answered');
+}
+
+function toggleRank(id, val, max, tileEl) {
+  const ans = getAnswers();
+  let ranked = ans[id] ? [...ans[id]] : [];
+  const idx = ranked.indexOf(val);
+  if (idx !== -1) { ranked.splice(idx, 1); }
+  else if (ranked.length < max) { ranked.push(val); }
+  saveAnswer(id, ranked);
+  const container = document.getElementById(`rank3-${id}`);
+  if (!container) return;
+  container.querySelectorAll('.option-tile').forEach(tile => {
+    const rankIdx = ranked.indexOf(tile.dataset.val);
+    const isRanked = rankIdx !== -1;
+    const rankNum = rankIdx + 1;
+    tile.classList.toggle('selected', isRanked);
+    const check = tile.querySelector('.check');
+    const badge = tile.querySelector('.rank-badge');
+    if (isRanked) {
+      check.style.cssText = 'background:var(--accent2);border-color:var(--accent2);color:white;font-size:12px;font-weight:600;';
+      check.textContent = rankNum;
+    } else {
+      check.style.cssText = '';
+      check.textContent = '';
+    }
+    if (badge) badge.textContent = ['','1ST','2ND','3RD'][rankNum] || '';
+  });
 }
 
 function toggleTag(id, val, max, el) {
@@ -805,6 +849,23 @@ function scoreRadioSimilarity(v1, v2) {
   return v1 === v2 ? 1 : 0.2;
 }
 
+function scoreRankedOverlap(r1, r2) {
+  if (!r1?.length || !r2?.length) return 0.5;
+  const w = [1.0, 0.67, 0.33];
+  const maxScore = r1.concat(r2).slice(0, Math.max(r1.length, r2.length))
+    .reduce((acc, _, i) => acc + (w[i] || 0), 0);
+  let score = 0;
+  r1.forEach((item, i) => {
+    const j = r2.indexOf(item);
+    if (j !== -1) {
+      const base = ((w[i] || 0) + (w[j] || 0)) / 2;
+      const rankPenalty = Math.abs(i - j) / Math.max(r1.length - 1, 1);
+      score += base * (1 - rankPenalty * 0.5);
+    }
+  });
+  return maxScore > 0 ? Math.min(score / maxScore, 1) : 0.5;
+}
+
 function scoreMultiselectOverlap(v1, v2) {
   if (!v1 || !v2 || !v1.length || !v2.length) return 0.5;
   const overlap = v1.filter(x => v2.includes(x)).length;
@@ -886,7 +947,7 @@ function computeScores() {
 
   // VALUES (40%)
   const v_career    = scoreSliderSimilarity(p1.careerVsRelationships, p2.careerVsRelationships);
-  const v_goals     = scoreMultiselectOverlap(p1.tenYearGoals, p2.tenYearGoals);
+  const v_goals     = scoreRankedOverlap(p1.tenYearGoals, p2.tenYearGoals);
   const v_money     = scoreSliderSimilarity(p1.moneyStyle, p2.moneyStyle);
   const v_ambition  = scoreRadioSimilarity(p1.ambition, p2.ambition);
   const v_collective  = scoreRadioSimilarity(p1.collectivism, p2.collectivism);
